@@ -12,6 +12,21 @@ FP_EXEC="$2"
 DATASET="$3"
 OUTPUT_DIR="$4"
 
+if [ ! -x "$APRIORI_EXEC" ]; then
+    echo "Error: Apriori executable not found or not executable: $APRIORI_EXEC"
+    exit 1
+fi
+
+if [ ! -x "$FP_EXEC" ]; then
+    echo "Error: FP-Growth executable not found or not executable: $FP_EXEC"
+    exit 1
+fi
+
+if [ ! -f "$DATASET" ]; then
+    echo "Error: Dataset not found: $DATASET"
+    exit 1
+fi
+
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
 
@@ -31,7 +46,16 @@ for threshold in "${THRESHOLDS[@]}"; do
     # Time the execution
     START=$(python3 -c 'import time; print(time.time())')
     
-    "$APRIORI_EXEC" -s-${threshold} "$DATASET" "$OUTPUT_DIR/ap${threshold}" > /dev/null 2>&1
+    "$APRIORI_EXEC" -s${threshold} "$DATASET" "$OUTPUT_DIR/ap${threshold}" > "$OUTPUT_DIR/ap${threshold}.log" 2>&1
+    STATUS=$?
+    if [ $STATUS -ne 0 ]; then
+        echo "  Error: Apriori failed at ${threshold}% (see $OUTPUT_DIR/ap${threshold}.log)"
+        exit 1
+    fi
+    if [ ! -s "$OUTPUT_DIR/ap${threshold}" ]; then
+        echo "  Error: Apriori output missing or empty at ${threshold}%"
+        exit 1
+    fi
     
     END=$(python3 -c 'import time; print(time.time())')
     RUNTIME=$(python3 -c "print($END - $START)")
@@ -47,7 +71,16 @@ for threshold in "${THRESHOLDS[@]}"; do
     # Time the execution
     START=$(python3 -c 'import time; print(time.time())')
     
-    "$FP_EXEC" -s-${threshold} "$DATASET" "$OUTPUT_DIR/fp${threshold}" > /dev/null 2>&1
+    "$FP_EXEC" -s${threshold} "$DATASET" "$OUTPUT_DIR/fp${threshold}" > "$OUTPUT_DIR/fp${threshold}.log" 2>&1
+    STATUS=$?
+    if [ $STATUS -ne 0 ]; then
+        echo "  Error: FP-Growth failed at ${threshold}% (see $OUTPUT_DIR/fp${threshold}.log)"
+        exit 1
+    fi
+    if [ ! -s "$OUTPUT_DIR/fp${threshold}" ]; then
+        echo "  Error: FP-Growth output missing or empty at ${threshold}%"
+        exit 1
+    fi
     
     END=$(python3 -c 'import time; print(time.time())')
     RUNTIME=$(python3 -c "print($END - $START)")
