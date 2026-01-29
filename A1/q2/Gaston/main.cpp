@@ -2,6 +2,7 @@
 // Siegfried Nijssen, snijssen@liacs.nl, jan 2004.
 #include <iostream>
 #include <fstream>
+#include <getopt.h>
 #include "database.h"
 #include "path.h"
 #include "misc.h"
@@ -49,7 +50,7 @@ void puti ( FILE *f, int i ) {
   } while ( k );
 }
 
-main ( int argc, char *argv[] ) {
+int main ( int argc, char *argv[] ) {
   clock_t t1 = clock ();
   cerr << "GASTON GrAph, Sequences and Tree ExtractiON algorithm" << endl;
   cerr << "Version 1.0 with Occurrence Lists" << endl;
