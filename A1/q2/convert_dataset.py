@@ -41,9 +41,21 @@ def parse_yeast_dataset(filepath):
         if line.startswith('#'):
             graph_id = line[1:]
             i += 1
-            
+
+            # Skip any empty lines after graph id
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+
             # Number of nodes
-            num_nodes = int(lines[i].strip())
+            try:
+                num_nodes = int(lines[i].strip())
+            except (ValueError, IndexError):
+                raise ValueError(
+                    f"Expected integer num_nodes after graph id '#{graph_id}', got: "
+                    f"{lines[i].strip() if i < len(lines) else 'EOF'}\n"
+                    "Check the dataset file path. If you passed 'actives.txt', "
+                    "use 'Yeast/167.txt_graph' instead."
+                )
             i += 1
             
             # Read node labels

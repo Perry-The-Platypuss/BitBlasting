@@ -31,13 +31,31 @@ fi
 mkdir -p "$OUTPUT_DIR"
 
 # Support thresholds (in percentage)
-THRESHOLDS=(5 10 25 50 90)
+# Default: 10 25 50 90
+# Override by setting THRESHOLDS env, e.g.:
+#   THRESHOLDS="10" bash q1_1.sh ...
+if [ -n "$THRESHOLDS" ]; then
+    read -r -a THRESHOLDS_ARR <<< "$THRESHOLDS"
+    THRESHOLDS=("${THRESHOLDS_ARR[@]}")
+else
+    THRESHOLDS=(10 25 50 90)
+fi
 
 # Arrays to store runtimes
 declare -a APRIORI_TIMES
 declare -a FP_TIMES
 
 echo "Running Apriori and FP-Growth at different support thresholds..."
+
+# Helper: check if log indicates no frequent items
+no_frequent_items() {
+    local log_file="$1"
+    if [ -f "$log_file" ]; then
+        grep -qiE "no \\(frequent\\) items found|no frequent items found" "$log_file"
+        return $?
+    fi
+    return 1
+}
 
 # Run Apriori at different thresholds
 for threshold in "${THRESHOLDS[@]}"; do
@@ -46,15 +64,25 @@ for threshold in "${THRESHOLDS[@]}"; do
     # Time the execution
     START=$(python3 -c 'import time; print(time.time())')
     
-    "$APRIORI_EXEC" -s${threshold} "$DATASET" "$OUTPUT_DIR/ap${threshold}" > "$OUTPUT_DIR/ap${threshold}.log" 2>&1
+    LOG_FILE="$OUTPUT_DIR/ap${threshold}.log"
+    "$APRIORI_EXEC" -s${threshold} "$DATASET" "$OUTPUT_DIR/ap${threshold}" > "$LOG_FILE" 2>&1
     STATUS=$?
     if [ $STATUS -ne 0 ]; then
-        echo "  Error: Apriori failed at ${threshold}% (see $OUTPUT_DIR/ap${threshold}.log)"
-        exit 1
+        if no_frequent_items "$LOG_FILE"; then
+            echo "  Warning: Apriori found no frequent items at ${threshold}% (continuing)"
+            : > "$OUTPUT_DIR/ap${threshold}"
+        else
+            echo "  Error: Apriori failed at ${threshold}% (see $LOG_FILE)"
+            exit 1
+        fi
     fi
     if [ ! -s "$OUTPUT_DIR/ap${threshold}" ]; then
-        echo "  Error: Apriori output missing or empty at ${threshold}%"
-        exit 1
+        if no_frequent_items "$LOG_FILE"; then
+            : > "$OUTPUT_DIR/ap${threshold}"
+        else
+            echo "  Error: Apriori output missing or empty at ${threshold}%"
+            exit 1
+        fi
     fi
     
     END=$(python3 -c 'import time; print(time.time())')
@@ -71,15 +99,25 @@ for threshold in "${THRESHOLDS[@]}"; do
     # Time the execution
     START=$(python3 -c 'import time; print(time.time())')
     
-    "$FP_EXEC" -s${threshold} "$DATASET" "$OUTPUT_DIR/fp${threshold}" > "$OUTPUT_DIR/fp${threshold}.log" 2>&1
+    LOG_FILE="$OUTPUT_DIR/fp${threshold}.log"
+    "$FP_EXEC" -s${threshold} "$DATASET" "$OUTPUT_DIR/fp${threshold}" > "$LOG_FILE" 2>&1
     STATUS=$?
     if [ $STATUS -ne 0 ]; then
-        echo "  Error: FP-Growth failed at ${threshold}% (see $OUTPUT_DIR/fp${threshold}.log)"
-        exit 1
+        if no_frequent_items "$LOG_FILE"; then
+            echo "  Warning: FP-Growth found no frequent items at ${threshold}% (continuing)"
+            : > "$OUTPUT_DIR/fp${threshold}"
+        else
+            echo "  Error: FP-Growth failed at ${threshold}% (see $LOG_FILE)"
+            exit 1
+        fi
     fi
     if [ ! -s "$OUTPUT_DIR/fp${threshold}" ]; then
-        echo "  Error: FP-Growth output missing or empty at ${threshold}%"
-        exit 1
+        if no_frequent_items "$LOG_FILE"; then
+            : > "$OUTPUT_DIR/fp${threshold}"
+        else
+            echo "  Error: FP-Growth output missing or empty at ${threshold}%"
+            exit 1
+        fi
     fi
     
     END=$(python3 -c 'import time; print(time.time())')
