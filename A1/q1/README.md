@@ -16,6 +16,24 @@ This will compile both algorithms and create executables in their respective dir
 Run the comparison on the webdocs dataset:
 NOTE: download dataset from http://fimi.uantwerpen.be/data/webdocs.dat.gz (Too large to push on github sed)
 
+### Exact commands (from repo layout)
+Assuming you are in:
+`/home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1`
+
+1) Unzip dataset (if needed):
+```bash
+gunzip /home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/webdocs.dat.gz
+```
+
+2) Run Task 1:
+```bash
+bash q1_1.sh \
+  /home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/apriori/apriori/src/apriori \
+  /home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/fpgrowth/fpgrowth/src/fpgrowth \
+  /home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/webdocs.dat \
+  /home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/output
+```
+
 ```bash
 bash q1_1.sh <path_to_apriori> <path_to_fpgrowth> <path_to_dataset> <output_dir>
 ```
@@ -55,6 +73,29 @@ bash q1_2.sh "A B C D E F G H I J" 15000
 
 # If itemset is in a file (one item per line or whitespace-separated):
 bash q1_2.sh /absolute/path/to/itemset.txt 15000
+```
+
+### Exact commands (recommended)
+1) Create a 100-item universe file:
+```bash
+python3 - <<'PY'
+items = [f"I{i}" for i in range(1, 101)]
+with open("/home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/itemset.txt", "w") as f:
+    f.write("\n".join(items))
+print("Wrote itemset.txt with 100 items")
+PY
+```
+
+2) Generate 15,000 transactions:
+```bash
+bash q1_2.sh /home/abhaas/Desktop/COURSES/COL761/BitBlasting/A1/q1/itemset.txt 15000
+```
+
+Or auto-generate an itemset inside q1_2.sh:
+```bash
+bash q1_2.sh AUTO 15000
+# or for a different universe size:
+bash q1_2.sh AUTO:200 15000
 ```
 
 This creates `generated_transactions.dat` in the current `q1` directory.

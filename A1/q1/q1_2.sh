@@ -14,6 +14,23 @@ NUM_TX="$2"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_DATASET="$SCRIPT_DIR/generated_transactions.dat"
 
+# Auto-generate an itemset if requested.
+# Usage: ITEMSET="AUTO" (defaults to 100 items), or ITEMSET="AUTO:200"
+if [[ "$ITEMSET" == AUTO* ]]; then
+    COUNT="100"
+    if [[ "$ITEMSET" == AUTO:* ]]; then
+        COUNT="${ITEMSET#AUTO:}"
+    fi
+    ITEMSET_PATH="$SCRIPT_DIR/itemset.txt"
+    python3 - <<PY
+items = [f"I{i}" for i in range(1, int("$COUNT") + 1)]
+with open("$ITEMSET_PATH", "w") as f:
+    f.write("\\n".join(items))
+print("Wrote itemset.txt with", len(items), "items")
+PY
+    ITEMSET="$ITEMSET_PATH"
+fi
+
 python3 "$SCRIPT_DIR/generate_transactions.py" "$ITEMSET" "$NUM_TX" "$OUT_DATASET"
 
 # Optional: rerun Task-1 pipeline on the generated dataset if requested.
